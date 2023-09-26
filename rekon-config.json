@@ -1,16 +1,17 @@
 {
     "root_urls": [
-       "example.com",
-       "sample.com"
+       "example.com"
     ],
-    "max_dns_records": 25,
+    "max_dns_records": 50,
     "run_ip_scan": true,
-    "run_pii_scan": true,
+    "run_pii_scan": false,
     "http_status_scan": true,
     "sec_headers_scan": true,
     "check_exposed_pages": true,
     "run_firewall_scan": false,
+    "run_robots_txt_scan": true,
     "run_port_scan": false,
+    
     "ports": [
         43,
         8080

@@ -1,4 +1,3 @@
-
 # MIT License
 #
 # Copyright (c) Tim Kelly
@@ -33,21 +32,11 @@ from urllib3.exceptions import NewConnectionError
 import time
 import json
 
-COMMON_SECURITY_HEADERS = [
-        "Content-Security-Policy",
-        "Strict-Transport-Security",
-        "X-Frame-Options",
-        "Referrer-Policy",
-    ]
-
-    # Regular expressions and their corresponding types for PII patterns
-pii_patterns = [
-    (r"\b\d{3}-\d{2}-\d{4}\b", "SSN"),
-    (r"\b\d{4}-\d{4}-\d{4}-\d{4}\b", "Credit Card"),
-    (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "Email"),
-    (r"\bpassword\s*=\s*['\"](.*?)['\"]", "Password"),
-    (r"\bprivate_key\s*=\s*['\"](.*?)['\"]", "Private Key"),
-]
+# scanning modules function imports
+from scan_modules.robots_txt_scanner import check_robots_txt
+from scan_modules.ip_collect_scanner import check_ip_addresses
+from scan_modules.sec_headers_scan import check_security_headers
+from scan_modules.http_result_scan   import check_http_response
 
 # Regular expressions and their corresponding types for PII patterns
 pii_patterns = [
@@ -58,9 +47,21 @@ pii_patterns = [
     (r"\bprivate_key\s*=\s*['\"](.*?)['\"]", "Private Key"),
 ]
 
-# Load configuration from JSON file
-with open("rekon-config.json", "r") as config_file:
-    config = json.load(config_file)
+try:
+    with open("rekon-config.json", "r") as config_file:
+        config = json.load(config_file)
+except FileNotFoundError:
+    print("Error: The 'rekon-config.json' file does not exist.")
+except json.JSONDecodeError as e:
+    print(f"Error: Failed to parse 'rekon-config.json'. JSON decoding error: {e}")
+    # You can add additional error handling for JSON decoding errors if needed
+    # For example, you might want to print e.msg and e.lineno to provide more information
+    # about the specific error.
+    # e.g., print(f"Error at line {e.lineno}: {e.msg}")
+    exit(1)  # Exit the program with an error code
+except Exception as e:
+    print(f"An unexpected error occurred: {e}")
+    exit(1)  # Exit the program with an error code
 
 # Initialize an empty list to store data frames for each ROOT_DOMAIN
 dfs = []
@@ -169,57 +170,6 @@ def scan_for_pii(text):
                 found_pii.append((pii_value, pii_type))
     return found_pii
 
-def has_security_misconfiguration(headers):
-    missing_headers = [
-        header for header in COMMON_SECURITY_HEADERS if header not in headers
-    ]
-    return missing_headers
-
-# Define the function to check security headers
-def check_security_headers(common_name):
-    common_name = common_name.strip()
-    missing_headers_str = ""
-
-    if common_name and is_valid_domain(common_name):
-        try:
-            response = requests.get(f"https://{common_name}", timeout=10)
-            http_response = response.status_code
-
-            if http_response >= 400:
-                missing_headers_str = "DNT"
-
-            headers = response.headers
-            missing_headers = has_security_misconfiguration(headers)
-
-            if missing_headers:
-                missing_headers_str = ",".join(missing_headers)
-            else:
-                missing_headers_str = "No missing headers"
-
-        except (
-            SSLError,
-            ConnectionError,
-            NewConnectionError,
-            ReadTimeout,
-        ) as error:
-            print(f"Error for {common_name}: {error}")
-            time.sleep(1)  # Wait before retrying
-            missing_headers_str = "Error: " + str(error)
-
-    return missing_headers_str
-
-# HTTP response
-def check_http_response(common_name):
-    common_name = common_name.strip().lower()  # Convert to lowercase
-    url = f"http://{common_name}"
-
-    try:
-        response = requests.get(url, timeout=10)
-        return response.status_code
-
-    except requests.exceptions.RequestException:
-        return "999"  # Return 999 for exceptions
-
 def is_valid_domain(domain):
     return not domain.startswith("*.") and "." in domain
 
@@ -250,25 +200,6 @@ def detect_firewall(domain):
                     break
 
     return firewall_result
-
-# Get IP and record type for domain
-def check_ip_for_dns(domain):
-
-    ip_addresses = ''
-
-    try:
-        answers = dns.resolver.resolve(domain)
-        for answer in answers:
-            ip_addresses += answer.address + ","
-
-        # Remove the trailing comma
-        ip_addresses = ip_addresses.rstrip(',')
-
-    except dns.exception.DNSException:
-        print(f"Could not resolve DNS information for {domain}")
-
-    return ip_addresses
-
 
 # Function to write DataFrame to a CSV file
 def write_to_csv(dataframe, filename):
@@ -304,13 +235,16 @@ if config["run_firewall_scan"]:
     deduplicated_df["firewall"] = firewall_results
 
 if config["run_ip_scan"]:
-    print(f"Starting IP gathering scan . . .")
 
+    print(f"Starting IP gathering scan . . .")
     found_ips = []
 
     for dns_name in dns_names_list:
-        ip_result = check_ip_for_dns(dns_name)
-        found_ips.append(ip_result)
+        if is_valid_domain(dns_name):
+            ip_result = check_ip_addresses(dns_name)
+            found_ips.append(ip_result)
+        else:
+            found_ips.append("DNT")
 
     deduplicated_df["associated_ips"] = found_ips
 
@@ -320,8 +254,11 @@ if config["http_status_scan"]:
     http_responses = []  # Store HTTP responses
 
     for dns_name in dns_names_list:
-        http_result = check_http_response(dns_name)
-        http_responses.append(http_result)  # Append the HTTP response code
+        if is_valid_domain(dns_name):
+            http_result = check_http_response(dns_name)
+            http_responses.append(http_result)  # Append the HTTP response code
+        else:
+            http_responses.append("DNT")
 
     # Add a new column "http_response" to deduped_df
     deduplicated_df["http_response"] = http_responses
@@ -332,8 +269,11 @@ if config["sec_headers_scan"]:
     sec_header_responses = []  # Store security header results
 
     for dns_name in dns_names_list:
-        sec_header_result = check_security_headers(dns_name)
-        sec_header_responses.append(sec_header_result)  # Append the security header result
+        if is_valid_domain(dns_name):
+            sec_header_result = check_security_headers(dns_name)
+            sec_header_responses.append(sec_header_result)  # Append the security header result
+        else:
+            sec_header_responses.append("DNT") 
 
     # Add a new column "missing_sec_headers" to deduplicated_df
     deduplicated_df["missing_sec_headers"] = sec_header_responses
@@ -341,6 +281,20 @@ if config["sec_headers_scan"]:
 if config["run_pii_scan"]:
     print(f"Starting PII scan . . .")
     scan_and_update_pii_data(deduplicated_df)
+
+if config["run_robots_txt_scan"]:
+    print(f"Starting robots.txt scan . . .")
+    robots_text_response = []
+
+    for dns_name in dns_names_list:
+        if is_valid_domain(dns_name):
+            robots_text_result = check_robots_txt(dns_name)
+            robots_text_response.append(robots_text_result)  # Append the security header result
+        else:
+            robots_text_response.append("DNT")
+
+    # Add a new column "missing_sec_headers" to deduplicated_df
+    deduplicated_df["has_robots_txt"] = robots_text_response
 
 # Get the current date in the "YYYYMMDD" format
 current_date = datetime.now().strftime("%Y%m%d")
