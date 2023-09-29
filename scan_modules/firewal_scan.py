@@ -1,3 +1,4 @@
+# Define the function for firewall detection
 # MIT License
 #
 # Copyright (c) 2023 Tim Kelly
@@ -20,16 +21,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-import requests
 
-# HTTP response
-def check_http_response(common_name):
-    common_name = common_name.strip().lower()  # Convert to lowercase
-    url = f"http://{common_name}"
+import subprocess
+import re
 
-    try:
-        response = requests.get(url, timeout=10)
-        return response.status_code
+def identify_firewall(domain):
+        command = f"wafw00f {domain}"
+        result = subprocess.check_output(command, shell=True, text=True)
+        return result.strip()
 
-    except requests.exceptions.RequestException:
-        return "999"  # Return 999 for exceptions
+def detect_firewall(domain):
+    
+    firewall_result = "Unknown"  # Initialize with None by default
+    firewall_result_raw = identify_firewall(domain)
+    firewall_lines = firewall_result_raw.split('\n')
+
+    for line in firewall_lines:
+        if "No WAF detected" in line:
+            firewall_result = "No WAF detected"
+            break
+        elif "is behind" in line:
+            firewall_result = clean_firewall_name(line.split("is behind", 1)[1].strip())
+            break
+
+    return firewall_result
+
+def clean_firewall_name(name):
+    return re.sub(r"\x1b\[\d+;\d+m", "", name)
