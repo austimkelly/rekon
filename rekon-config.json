@@ -12,6 +12,7 @@
     "check_exposed_pages": true,
     "run_firewall_scan": true,
     "run_robots_txt_scan": true,
+    "take_screenshot": true,
     "run_port_scan": false,
     "ports": [
         43,
