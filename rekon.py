@@ -31,6 +31,7 @@ from scan_modules.ip_collect_scanner import check_ip_addresses
 from scan_modules.sec_headers_scan import check_security_headers
 from scan_modules.http_result_scan   import check_http_response
 from scan_modules.firewal_scan import detect_firewall
+from scan_modules.screen_shot_scan import take_screenshot
 
 # Regular expressions and their corresponding types for PII patterns
 pii_patterns = [
@@ -218,4 +219,13 @@ print(f"Writing output results . . .")
 # Call the function to write the DataFrame to the CSV file
 write_to_csv(deduplicated_df, csv_filename)
 
-print(f"√ Done rekon for . . . ")
+if config["take_screenshot"]:
+
+    print(f"Starting screenshots scan . . .")
+    
+    for dns_name in dns_names_list:
+        if is_valid_domain(dns_name):
+             take_screenshot(dns_name)
+
+print(f"√ rekon complete . . . ")
+

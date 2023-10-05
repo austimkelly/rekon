@@ -1,5 +1,5 @@
 # rekon
-`rekon`` is an attack surface managent tool that helps to collect basic pubically visible asset information though DNS enumeration and a variety of passive probes. This tool is meant to be able to build an asset inventory from a top-level domain (e.g. acme.com) using free and open source solutions. For an example of the output please see the [example_output](./example_output/) folder in this repository.
+`rekon` is an attack surface managent tool that helps to collect basic pubically visible asset information though DNS enumeration and a variety of passive probes. This tool is meant to be able to build an asset inventory from a top-level domain (e.g. acme.com) using free and open source solutions. For an example of the output please see the [example_output](./example_output/) folder in this repository.
  
 `rekon` uses a combination of active and passive techinques to gather information. You should only run this tool against sites for which you have permission to run an active scan.
 
@@ -37,6 +37,7 @@ Rekon uses a configuration file (rekon-config.json) to specify the scanning para
     "run_ip_scan": true, -- Provide a list of associated IP addresses
     "http_status_scan": true, -- Return the HTTP status of the domain
     "sec_headers_scan": true, -- Look for specific missing security headers
+    "take_screenshot": true, -- use selenium to snag a screeshot of a valid domain
 }
 ```
 
@@ -77,6 +78,7 @@ Here are some other references that may be helpful to see how other approach thi
 
 * [Security Trails](https://securitytrails.com/) - Building DNS and IP realted inventories and monitoring.
 * [HackerOne Attack Surface Reviuew](https://www.hackerone.com/attack-surface-review)
+* [Security Scorecard](https://securityscorecard.com/solutions/enterprise-risk-management/)
 
 # Open source tools
 
