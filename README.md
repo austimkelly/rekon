@@ -37,6 +37,7 @@ Rekon uses a configuration file (rekon-config.json) to specify the scanning para
     "run_ip_scan": true, -- Provide a list of associated IP addresses
     "http_status_scan": true, -- Return the HTTP status of the domain
     "sec_headers_scan": true, -- Look for specific missing security headers
+    "take_screenshot": true, -- use selenium to snag a screeshot of a valid domain
 }
 ```
 
