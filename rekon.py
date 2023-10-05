@@ -219,7 +219,6 @@ print(f"Writing output results . . .")
 # Call the function to write the DataFrame to the CSV file
 write_to_csv(deduplicated_df, csv_filename)
 
-
 if config["take_screenshot"]:
 
     print(f"Starting screenshots scan . . .")
@@ -229,3 +228,4 @@ if config["take_screenshot"]:
              take_screenshot(dns_name)
 
 print(f"√ rekon complete . . . ")
+
