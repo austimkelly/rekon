@@ -24,6 +24,7 @@ import requests
 from datetime import datetime
 import pandas as pd
 import json
+import os
 
 # scanning modules function imports
 from scan_modules.robots_txt_scanner import check_robots_txt
@@ -61,6 +62,10 @@ except Exception as e:
 # Initialize an empty list to store data frames for each ROOT_DOMAIN
 dfs = []
 aggregate_df = []
+
+if  config["output_format"]["csv"] == False and config["output_format"]["html"] == False:
+    print("An output format was not specified. Please make sure the configuraiton specifies and output_format.")
+    exit(1)
 
 def start_scan(urls_to_scan):
     
@@ -112,12 +117,47 @@ def start_scan(urls_to_scan):
 
 
 def is_valid_domain(domain):
-    return not domain.startswith("*.") and "." in domain
+    return not domain.startswith("*.") and "." in domain and " " not in domain
 
 # Function to write DataFrame to a CSV file
 def write_to_csv(dataframe, filename):
     try:
         dataframe.to_csv(filename, index=False)
+        print(f"DataFrame has been successfully written to {filename}")
+    except Exception as e:
+        print(f"An error occurred while writing to {filename}: {e}")
+
+# Function to write DataFrame to an HTML file
+def write_to_html(dataframe, filename):
+    try:
+        if "screen_shot_name" in dataframe.columns:
+            # Create a copy of the dataframe to avoid modifying the original dataframe
+            df_copy = dataframe.copy()
+
+            # Iterate through rows
+            for index, row in df_copy.iterrows():
+                screenshot_name = row["screen_shot_name"]
+
+                # If the value is "DNT" or doesn't end with ".png", do nothing
+                if screenshot_name == "DNT" or not screenshot_name.endswith(".png"):
+                    continue
+
+                # Wrap the text in a relative HTML link
+                relative_path = f"./{screenshot_name}"
+                df_copy.at[index, "screen_shot_name"] = f'<a href="{relative_path}" target="_blank">{screenshot_name}</a>'
+
+                # Display the image from the text in the column (resized to 250x250 pixels)
+                image_tag = f'<img src="{relative_path}" alt="{screenshot_name}" style="max-width: 250px; max-height: 250px;">'
+                df_copy.at[index, "screen_shot_name"] += f'<br>{image_tag}'
+
+                # Move the screenshot to the folder
+                #os.rename(screenshot_name, f"./{screenshot_name}")
+
+            # Write the modified dataframe to HTML
+            df_copy.to_html(filename, index=False, escape=False)
+        else:
+            dataframe.to_html(filename, index=False)
+
         print(f"DataFrame has been successfully written to {filename}")
     except Exception as e:
         print(f"An error occurred while writing to {filename}: {e}")
@@ -209,23 +249,36 @@ if config["run_robots_txt_scan"]:
     # Add a new column "missing_sec_headers" to deduplicated_df
     deduplicated_df["has_robots_txt"] = robots_text_response
 
+if config["take_screenshot"]:
+    print(f"Starting screenshots scan . . .")
+    screen_grab_name_responses = []
+    for dns_name in dns_names_list:
+        if is_valid_domain(dns_name):
+            screen_img_name = take_screenshot(dns_name)
+            screen_grab_name_responses.append(screen_img_name) 
+        else:
+            screen_grab_name_responses.append("DNT")
+
+    # Add a new column "missing_sec_headers" to deduplicated_df
+    deduplicated_df["screen_shot_name"] = screen_grab_name_responses
+
 # Get the current date in the "YYYYMMDD" format
 current_date = datetime.now().strftime("%Y%m%d")
 
 # Update the csv_filename with the current date
 csv_filename = f"scan_results_{current_date}.csv"
 
-print(f"Writing output results . . .")
-# Call the function to write the DataFrame to the CSV file
-write_to_csv(deduplicated_df, csv_filename)
+if config["output_format"]["csv"]:
+    print(f"Writing CSV output results . . .")
+    # Call the function to write the DataFrame to the CSV file
+    write_to_csv(deduplicated_df, csv_filename)
 
-if config["take_screenshot"]:
-
-    print(f"Starting screenshots scan . . .")
+if config["output_format"]["html"]:
+    print(f"Writing HTML output results . . .")
+    # Update the html_filename with the current date
+    html_filename = f"scan_results_{current_date}.html"
     
-    for dns_name in dns_names_list:
-        if is_valid_domain(dns_name):
-             take_screenshot(dns_name)
+    # Call the function to write the DataFrame to the HTML file
+    write_to_html(deduplicated_df, html_filename)
 
 print(f"√ rekon complete . . . ")
-
