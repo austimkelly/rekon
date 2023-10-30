@@ -70,4 +70,3 @@ def take_screenshot(url, output_dir='screen_captures'):
         driver.quit()
 
     return output_filename
-
