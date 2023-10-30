@@ -1,15 +1,27 @@
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Python Version](https://img.shields.io/badge/Python-3.11.5-blue.svg)](https://www.python.org/downloads/release/python-3115/)
+[![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Last Commit](https://img.shields.io/github/last-commit/austimkelly/rekon.svg)](https://github.com/austimkelly/rekon/commits/main)
+
 # rekon
-`rekon` is an attack surface managent tool that helps to collect basic pubically visible asset information though DNS enumeration and a variety of passive probes. This tool is meant to be able to build an asset inventory from a top-level domain (e.g. acme.com) using free and open source solutions. For an example of the output please see the [example_output](./example_output/) folder in this repository.
- 
-`rekon` uses a combination of active and passive techinques to gather information. You should only run this tool against sites for which you have permission to run an active scan.
+`rekon` is a passive domain scanning tool that helps to collect public internet resrouce information though DNS enumeration and a variety of passive scanning probes. This tool is meant to be able to build an asset inventory from a top-level domain (e.g. acme.com) using free and open source solutions. This kind of inventory is also known as an attack surface management tool. For an example of the output please see the [example_output](./example_output/) folder in this repository.
+
+`rekon` is not a vulnerabity scanning tool nor does it rely on any active scanning techniques. Active scanning typicaly involves acessing web content simulating user interaction for more comprehensive vulnerabity analysis. `rekon` does not require any API keys or accounts and is built to be fast.
 
 `rekon` is tested against Pyton 3.11.5 on OS X, but is should run anywhere.
+
+## Table of Contents
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Running rekon](#running-rekon)
+- [Viewing the results](#viewing-the-results)
+- [Other reconnaissance references](#other-reconnaissance-references)
 
 # Installation
 
 1. Clone or download this repo:
     
-    `git clone https://github.com/yourusername/rekon.git`
+    `git clone https://github.com/austimkelly/rekon.git`
 
 1. Navigate to the root of the repo:
 
@@ -59,7 +71,9 @@ Once Rekon has completed scanning, it will generate a CSV file containing the sc
 
 You can open the CSV file with a spreadsheet application or text editor to view the scan results.
 
-# Other reconnisance references
+For quicker human readable viewing, an HTML table outputs the same results. The HTML contains an embed of the site image for quick viewing.
+
+# Other reconnaissance references
 
 Here are some other references that may be helpful to see how other approach this kind of attack surface reconnisance. 
 
@@ -89,4 +103,4 @@ Here are some other references that may be helpful to see how other approach thi
 * [OWASP Amass](https://github.com/owasp-amass/amass) - Attack surface network mapping.
 * [Attack Surface Mapper](https://github.com/superhedgy/AttackSurfaceMapper) - Requires API keys for multiple integrations
 
-[Here's a good blog article](https://blog.yeswehack.com/yeswerhackers/subdomains-tools-review-full-detailed-comparison/) by [Siz2dez](https://twitter.com/Six2dez1) that provides a more comprehensive list of subdomain tools.
+[Here's a good blog article](https://blog.yeswehack.com/yeswerhackers/subdomains-tools-review-full-detailed-comparison/) by [Siz2dez](https://twitter.com/Six2dez1) that provides a more comprehensive list of subdomain enumeration tools.

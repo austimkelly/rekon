@@ -24,7 +24,6 @@ import requests
 from datetime import datetime
 import pandas as pd
 import json
-import os
 
 # scanning modules function imports
 from scan_modules.robots_txt_scanner import check_robots_txt
@@ -34,14 +33,9 @@ from scan_modules.http_result_scan   import check_http_response
 from scan_modules.firewal_scan import detect_firewall
 from scan_modules.screen_shot_scan import take_screenshot
 
-# Regular expressions and their corresponding types for PII patterns
-pii_patterns = [
-    (r"\b\d{3}-\d{2}-\d{4}\b", "SSN"),
-    (r"\b\d{4}-\d{4}-\d{4}-\d{4}\b", "Credit Card"),
-    (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "Email"),
-    (r"\bpassword\s*=\s*['\"](.*?)['\"]", "Password"),
-    (r"\bprivate_key\s*=\s*['\"](.*?)['\"]", "Private Key"),
-]
+# reporting modules
+from reporting_modules.html_report import write_to_html
+from reporting_modules.csv_report import write_to_csv
 
 try:
     with open("rekon-config.json", "r") as config_file:
@@ -71,11 +65,9 @@ def start_scan(urls_to_scan):
     
     for ROOT_DOMAIN in urls_to_scan:
 
-        print("Scanning: " +  ROOT_DOMAIN)
-
         RECORD_LIMIT = config["max_dns_records"]
 
-        print(f"∞∞∞∞∞ Start rekon for {ROOT_DOMAIN}. . . ")
+        print(f"∞∞∞∞∞ Gathering subdomains for {ROOT_DOMAIN}. . . ")
 
         crt_sh_url = f"https://crt.sh/?q={ROOT_DOMAIN}&output=json&deduplicate=Y"
         response = requests.get(crt_sh_url)
@@ -118,49 +110,6 @@ def start_scan(urls_to_scan):
 
 def is_valid_domain(domain):
     return not domain.startswith("*.") and "." in domain and " " not in domain
-
-# Function to write DataFrame to a CSV file
-def write_to_csv(dataframe, filename):
-    try:
-        dataframe.to_csv(filename, index=False)
-        print(f"DataFrame has been successfully written to {filename}")
-    except Exception as e:
-        print(f"An error occurred while writing to {filename}: {e}")
-
-# Function to write DataFrame to an HTML file
-def write_to_html(dataframe, filename):
-    try:
-        if "screen_shot_name" in dataframe.columns:
-            # Create a copy of the dataframe to avoid modifying the original dataframe
-            df_copy = dataframe.copy()
-
-            # Iterate through rows
-            for index, row in df_copy.iterrows():
-                screenshot_name = row["screen_shot_name"]
-
-                # If the value is "DNT" or doesn't end with ".png", do nothing
-                if screenshot_name == "DNT" or not screenshot_name.endswith(".png"):
-                    continue
-
-                # Wrap the text in a relative HTML link
-                relative_path = f"./{screenshot_name}"
-                df_copy.at[index, "screen_shot_name"] = f'<a href="{relative_path}" target="_blank">{screenshot_name}</a>'
-
-                # Display the image from the text in the column (resized to 250x250 pixels)
-                image_tag = f'<img src="{relative_path}" alt="{screenshot_name}" style="max-width: 250px; max-height: 250px;">'
-                df_copy.at[index, "screen_shot_name"] += f'<br>{image_tag}'
-
-                # Move the screenshot to the folder
-                #os.rename(screenshot_name, f"./{screenshot_name}")
-
-            # Write the modified dataframe to HTML
-            df_copy.to_html(filename, index=False, escape=False)
-        else:
-            dataframe.to_html(filename, index=False)
-
-        print(f"DataFrame has been successfully written to {filename}")
-    except Exception as e:
-        print(f"An error occurred while writing to {filename}: {e}")
 
 start_scan(config["root_urls"])
 
