@@ -22,10 +22,20 @@
 # SOFTWARE.
 #
 
+import pandas as pd
+from datetime import datetime
 
 # Function to write DataFrame to an HTML file
 def write_to_html(dataframe, filename):
     try:
+        # Add description at the top of the HTML file
+        current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        description = f"<p>Scan results courtesy of <a href='https://github.com/austimkelly/rekon' target='_blank'>rekon</a> on {current_datetime}.</p>"
+
+        # Write the description to the HTML file
+        with open(filename, "w") as file:
+            file.write(f"<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1.0'><style>table {{ min-width: 350px; width: 100%; }}</style></head><body>{description}")
+
         if "screen_shot_name" in dataframe.columns:
             # Create a copy of the dataframe to avoid modifying the original dataframe
             df_copy = dataframe.copy()
@@ -42,18 +52,28 @@ def write_to_html(dataframe, filename):
                 relative_path = f"./{screenshot_name}"
                 df_copy.at[index, "screen_shot_name"] = f'<a href="{relative_path}" target="_blank">{screenshot_name}</a>'
 
-                # Display the image from the text in the column (resized to 250x250 pixels)
-                image_tag = f'<img src="{relative_path}" alt="{screenshot_name}" style="max-width: 250px; max-height: 250px;">'
+                # Display the image from the text in the column (resized to 100% width)
+                image_tag = f'<img src="{relative_path}" alt="{screenshot_name}" style="width: 100%;">'
                 df_copy.at[index, "screen_shot_name"] += f'<br>{image_tag}'
 
                 # Move the screenshot to the folder
-                #os.rename(screenshot_name, f"./{screenshot_name}")
+                # os.rename(screenshot_name, f"./{screenshot_name}")
 
-            # Write the modified dataframe to HTML
-            df_copy.to_html(filename, index=False, escape=False)
+            # Append the modified dataframe to HTML
+            with open(filename, "a") as file:
+                df_copy.to_html(file, index=False, escape=False)
         else:
-            dataframe.to_html(filename, index=False)
+            # Write the dataframe to HTML
+            with open(filename, "a") as file:
+                dataframe.to_html(file, index=False, escape=False)
+
+        # Close the HTML file
+        with open(filename, "a") as file:
+            file.write("</body></html>")
 
         print(f"DataFrame has been successfully written to {filename}")
     except Exception as e:
         print(f"An error occurred while writing to {filename}: {e}")
+
+# Example usage:
+# write_to_html(your_dataframe, "output.html")
