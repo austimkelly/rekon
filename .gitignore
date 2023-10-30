@@ -1,6 +1,6 @@
 # rekon artifacts
-screen_captures/
-scan_results*
+/screen_captures/
+./scan_results*
 
 .DS_Store
 
