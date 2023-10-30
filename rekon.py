@@ -33,14 +33,9 @@ from scan_modules.http_result_scan   import check_http_response
 from scan_modules.firewal_scan import detect_firewall
 from scan_modules.screen_shot_scan import take_screenshot
 
-# Regular expressions and their corresponding types for PII patterns
-pii_patterns = [
-    (r"\b\d{3}-\d{2}-\d{4}\b", "SSN"),
-    (r"\b\d{4}-\d{4}-\d{4}-\d{4}\b", "Credit Card"),
-    (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "Email"),
-    (r"\bpassword\s*=\s*['\"](.*?)['\"]", "Password"),
-    (r"\bprivate_key\s*=\s*['\"](.*?)['\"]", "Private Key"),
-]
+# reporting modules
+from reporting_modules.html_report import write_to_html
+from reporting_modules.csv_report import write_to_csv
 
 try:
     with open("rekon-config.json", "r") as config_file:
@@ -62,15 +57,17 @@ except Exception as e:
 dfs = []
 aggregate_df = []
 
+if  config["output_format"]["csv"] == False and config["output_format"]["html"] == False:
+    print("An output format was not specified. Please make sure the configuraiton specifies and output_format.")
+    exit(1)
+
 def start_scan(urls_to_scan):
     
     for ROOT_DOMAIN in urls_to_scan:
 
-        print("Scanning: " +  ROOT_DOMAIN)
-
         RECORD_LIMIT = config["max_dns_records"]
 
-        print(f"∞∞∞∞∞ Start rekon for {ROOT_DOMAIN}. . . ")
+        print(f"∞∞∞∞∞ Gathering subdomains for {ROOT_DOMAIN}. . . ")
 
         crt_sh_url = f"https://crt.sh/?q={ROOT_DOMAIN}&output=json&deduplicate=Y"
         response = requests.get(crt_sh_url)
@@ -112,15 +109,7 @@ def start_scan(urls_to_scan):
 
 
 def is_valid_domain(domain):
-    return not domain.startswith("*.") and "." in domain
-
-# Function to write DataFrame to a CSV file
-def write_to_csv(dataframe, filename):
-    try:
-        dataframe.to_csv(filename, index=False)
-        print(f"DataFrame has been successfully written to {filename}")
-    except Exception as e:
-        print(f"An error occurred while writing to {filename}: {e}")
+    return not domain.startswith("*.") and "." in domain and " " not in domain
 
 start_scan(config["root_urls"])
 
@@ -209,23 +198,36 @@ if config["run_robots_txt_scan"]:
     # Add a new column "missing_sec_headers" to deduplicated_df
     deduplicated_df["has_robots_txt"] = robots_text_response
 
+if config["take_screenshot"]:
+    print(f"Starting screenshots scan . . .")
+    screen_grab_name_responses = []
+    for dns_name in dns_names_list:
+        if is_valid_domain(dns_name):
+            screen_img_name = take_screenshot(dns_name)
+            screen_grab_name_responses.append(screen_img_name) 
+        else:
+            screen_grab_name_responses.append("DNT")
+
+    # Add a new column "missing_sec_headers" to deduplicated_df
+    deduplicated_df["screen_shot_name"] = screen_grab_name_responses
+
 # Get the current date in the "YYYYMMDD" format
 current_date = datetime.now().strftime("%Y%m%d")
 
 # Update the csv_filename with the current date
 csv_filename = f"scan_results_{current_date}.csv"
 
-print(f"Writing output results . . .")
-# Call the function to write the DataFrame to the CSV file
-write_to_csv(deduplicated_df, csv_filename)
+if config["output_format"]["csv"]:
+    print(f"Writing CSV output results . . .")
+    # Call the function to write the DataFrame to the CSV file
+    write_to_csv(deduplicated_df, csv_filename)
 
-if config["take_screenshot"]:
-
-    print(f"Starting screenshots scan . . .")
+if config["output_format"]["html"]:
+    print(f"Writing HTML output results . . .")
+    # Update the html_filename with the current date
+    html_filename = f"scan_results_{current_date}.html"
     
-    for dns_name in dns_names_list:
-        if is_valid_domain(dns_name):
-             take_screenshot(dns_name)
+    # Call the function to write the DataFrame to the HTML file
+    write_to_html(deduplicated_df, html_filename)
 
 print(f"√ rekon complete . . . ")
-
