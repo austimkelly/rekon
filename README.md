@@ -14,6 +14,7 @@
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Running rekon](#running-rekon)
+- [Running Docker](#running-in-docker)
 - [Viewing the results](#viewing-the-results)
 - [Other reconnaissance references](#other-reconnaissance-references)
 
@@ -64,6 +65,23 @@ _Running the script over VPN is recommended_.
 1. Run rekon
 
     `python3 rekon.py`
+
+# Running in Docker
+
+Note: The Docker container will not run selenium tests for screenshots correctly on Apple M* silicon.
+
+Here's the steps to build an run in Docker, assuming Docker desktop has been installed:
+
+1. Navigate to the root of this repository in a terminal.
+1. Build the app: `docker build -t rekon-app .`
+1. Run the container: `docker run -it --name rekon-container rekon-app`. The container is now running.
+1. Open a new terminal at the root of this repostory to exec into the container.
+1. In the new terminal window run: `docker cp rekon.py rekon-container:/app`
+1. Then run `docker exec -it rekon-container /bin/bash` to enter the continer.
+1. Finally run `ptyon3 rekon.py`. Adjust `rekon-config.json` as necessary.
+
+docker rm rekon-container
+
 
 # Viewing the results
 
